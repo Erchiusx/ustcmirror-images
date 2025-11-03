@@ -18,6 +18,7 @@
     - [debian-cd](#debian-cd)
     - [docker-ce](#docker-ce)
     - [fedora](#fedora)
+    - [flatpak](#flatpak)
     - [freebsd-pkg](#freebsd-pkg)
     - [freebsd-ports](#freebsd-ports)
     - [ghcup](#ghcup)
@@ -35,6 +36,7 @@
     - [rclone](#rclone)
     - [rsync](#rsync)
     - [rubygems](#rubygems)
+    - [rustup](#rustup)
     - [stackage](#stackage)
     - [tsumugu](#tsumugu)
     - [winget-source](#winget-source)
@@ -65,16 +67,18 @@ docker run --rm \
 ### Volumes
 
 - `/data`: The mount point of the repository on the host. You can refer to it as environment variable `TO` in your program.
-- `/log`: The mount point of the host directory that save logs. You can refer to it as environment variable `LOG` in your program.
+- `/log`: The mount point of the host directory that save logs. You can refer to it as environment variable `LOGDIR` in your program.
 
 ### Common Configuration Parameters(AKA environment variables)
+
+Apart from `TO` and `LOGDIR`, these environment variables are common to all images.
 
 | Parameter          | Description                                                                                                            |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | `DEBUG`            | Set this to `true` to enable debugging.                                                                                |
 | `BIND_ADDRESS`     | Set the local ip to be bound. Require `--network=host`. (Some programs don't support this parameter)                   |
 | `OWNER`            | Set the uid and gid of the process so that the downloaded files wont get messed up. Defaults to `0:0` (aka root:root). |
-| `LOG_ROTATE_CYCLE` | Specify how many cycle versions of the logfile to be saved. Set this to `0` will disable rotation. Defaults to `0`.    |
+| `LOG_ROTATE_CYCLE` | Specify how many cycle versions of the logfile to be saved. Set this to `0` will **disable log file**. Defaults to `0` (NO LOG FILE).    |
 | `REPO`             | Name of the repository. Required in `archvsync`.                                                                       |
 | `RETRY`            | Times to re-sync if the process exits abnormally. Defaults to `0`.                                                     |
 
@@ -143,10 +147,11 @@ A dedicated script to sync <https://github.com/rust-lang/crates.io-index>.
 
 | Parameter        | Description                                                                                                |
 | ---------------- | ---------------------------------------------------------------------------------------------------------- |
-| `CRATES_PROXY`   | The URL that crates will be redirected to. Defaults to `https://crates-io.proxy.ustclug.org/api/v1/crates` |
-| `CRATES_GITMSG`  | The commit message of `config.json`. Defaults to `Redirect to USTC Mirrors`                                |
-| `CRATES_GITMAIL` | `user.email` when committing `config.json`. Defaults to `lug AT ustc.edu.cn`                               |
-| `CRATES_GITNAME` | `user.name` when committing `config.json`. Defaults to `mirror`                                            |
+| `CRATES_PROXY`     | The URL that crates will be redirected to. Defaults to `https://crates-io.proxy.ustclug.org/api/v1/crates` |
+| `CRATES_GITMSG`    | The commit message of `config.json`. Defaults to `Redirect to USTC Mirrors`                                |
+| `CRATES_GITMAIL`   | `user.email` when committing `config.json`. Defaults to `lug AT ustc.edu.cn`                               |
+| `CRATES_GITNAME`   | `user.name` when committing `config.json`. Defaults to `mirror`                                            |
+| `GEOMETRIC_REPACK` | Use geometric repacking to speed up repacking (requires `git >= 2.34` on server). See [GitHub Blog: Scaling monorepo maintenance](https://github.blog/2021-04-29-scaling-monorepo-maintenance/). Defaults to false. |
 
 ### debian-cd
 
@@ -192,16 +197,28 @@ See [dist conf](https://pagure.io/quick-fedora-mirror/blob/master/f/quick-fedora
 
 Note: This image is not in use now, as `quick-fedora-mirror` has some mysterious bugs when being used.
 
+### flatpak
+
+[![flatpak](https://img.shields.io/docker/image-size/ustcmirror/flatpak/latest)](https://hub.docker.com/r/ustcmirror/flatpak "flatpak")
+[![flatpak](https://img.shields.io/docker/pulls/ustcmirror/flatpak)](https://hub.docker.com/r/ustcmirror/flatpak "flatpak")
+
+A simple sync script to sync necessary metadata for flatpak. **This DOES NOT SYNC ANY BLOB FILES.**
+
+| Parameter    | Description      |
+| ------------ | ---------------- |
+| `USER_AGENT` | user agent used  |
+
 ### freebsd-pkg
 
 [![freebsd-pkg](https://img.shields.io/docker/image-size/ustcmirror/freebsd-pkg/latest)](https://hub.docker.com/r/ustcmirror/freebsd-pkg "freebsd-pkg")
 [![freebsd-pkg](https://img.shields.io/docker/pulls/ustcmirror/freebsd-pkg)](https://hub.docker.com/r/ustcmirror/freebsd-pkg "freebsd-pkg")
 
-| Parameter           | Description                                                      |
-| ------------------- | ---------------------------------------------------------------- |
-| `FBSD_PKG_UPSTREAM` | Set the URL of upstream. Defaults to `http://pkg.freebsd.org`.   |
-| `FBSD_PKG_JOBS`     | Defaults to `1`.                                                 |
-| `FBSD_PKG_EXCLUDE`  | Exclude ABI by regular expression. Defaults to `^FreeBSD:[89]:`. |
+| Parameter             | Description                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| `FBSD_PKG_UPSTREAM`   | Set the URL of upstream. Defaults to `http://pkg.freebsd.org`.                                  |
+| `FBSD_PKG_JOBS`       | Defaults to `1`.                                                                                |
+| `FBSD_PKG_EXCLUDE`    | Exclude ABI by regular expression. Defaults to `^FreeBSD:[89]:`.                                |
+| `FBSD_PKG_INDEX_ONLY` | Set to `true` to only sync index files, without downloading package files. Defaults to `false`. |
 
 ### freebsd-ports
 
@@ -406,7 +423,7 @@ ref:
 | `RSYNC_MAXDELETE`      | Maximum number of files that can be removed. Defaults to `4000`.      |
 | `RSYNC_RSH`            | Specify the remote shell, e.g. `ssh -i /path/to/key`.                 |
 
-### rubygems
+### rubygems / rubygems-dynamic
 
 [![rubygems](https://img.shields.io/docker/image-size/ustcmirror/rubygems/latest)](https://hub.docker.com/r/ustcmirror/rubygems "rubygems")
 [![rubygems](https://img.shields.io/docker/pulls/ustcmirror/rubygems)](https://hub.docker.com/r/ustcmirror/rubygems "rubygems")
@@ -414,6 +431,21 @@ ref:
 | Parameter  | Description                        |
 | ---------- | ---------------------------------- |
 | `UPSTREAM` | Defaults to `http://rubygems.org`. |
+
+### rustup
+
+[![rustup](https://img.shields.io/docker/image-size/ustcmirror/rustup/latest)](https://hub.docker.com/r/ustcmirror/rustup "rustup")
+[![rustup](https://img.shields.io/docker/pulls/ustcmirror/rustup/latest)](https://hub.docker.com/r/ustcmirror/rustup "rustup")
+
+This image is based on [rustup-mirror](https://github.com/jiegec/rustup-mirror).
+
+| Parameter  | Description                                 |
+| ---------- | ------------------------------------------- |
+| `UPSTREAM` | Defaults to `https://static.rust-lang.org/` |
+| `GC`       | Defaults to `1`                             |
+| `TARGETS`  | Defaults to `x86_64-unknown-linux-gnu`      |
+| `URL`      | Defaults to `http://127.0.0.1:8000/`        |
+
 
 ### shadowmire
 
